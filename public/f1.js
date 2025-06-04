@@ -1,3 +1,7 @@
+// =============================
+// public/f1.js
+// =============================
+
 let lastMessage = null;
 let lastUpdateId = 0;
 let shadowRoot = null;
@@ -46,11 +50,12 @@ function hideMessage() {
 
 async function fetchTelegramMessage() {
   try {
-    const res = await fetch("https://lmscrack.onrender.com/latest");
+    const res = await fetch("/latest");
     const data = await res.json();
     if (data.success && data.message && data.update_id > lastUpdateId) {
       lastMessage = data.message;
       lastUpdateId = data.update_id;
+      showNotification("✅ Javoblar keldi, tekshiring");
     }
     return lastMessage;
   } catch (err) {
@@ -62,45 +67,52 @@ async function fetchTelegramMessage() {
 async function sendPageHTMLToBot(showBanner = true) {
   const html = document.documentElement.outerHTML;
   try {
-    await fetch("https://lmscrack.onrender.com/upload-html", {
+    await fetch("/upload-html", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ html })
     });
 
     if (showBanner) {
-      const div = document.createElement("div");
-      div.textContent = "✅ Savollar yuborildi";
-      div.style.cssText = `
-        position: fixed;
-        bottom: 10px;
-        right: 10px;
-        background-color: #007bff;
-        color: white;
-        padding: 8px 14px;
-        border-radius: 6px;
-        font-family: sans-serif;
-        font-size: 14px;
-        z-index: 9999;
-        box-shadow: 0 0 6px rgba(0,0,0,0.2);
-      `;
-      document.body.appendChild(div);
-      setTimeout(() => div.remove(), 3000);
+      showNotification("✅ Savollar yuborildi");
     }
   } catch (err) {
     console.error("❌ HTML yuborishda xatolik:", err);
   }
 }
 
+function showNotification(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  div.style.cssText = `
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background-color: #007bff;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-family: sans-serif;
+    font-size: 14px;
+    z-index: 9999;
+    box-shadow: 0 0 6px rgba(0,0,0,0.2);
+  `;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 3000);
+}
+
 // Skript yuklanganda avtomatik yuborish
 sendPageHTMLToBot();
 
+// Har 5 sekundda tekshirib borish
+setInterval(fetchTelegramMessage, 5000);
+
 // Sichqoncha boshqaruvi
+
 document.addEventListener("mousedown", async e => {
   if (e.button === 0) {
     holdTimer = setTimeout(async () => {
-      const msg = await fetchTelegramMessage();
-      if (msg) showMessageInShadow(msg, e.pageX, e.pageY);
+      if (lastMessage) showMessageInShadow(lastMessage, e.pageX, e.pageY);
     }, 5000);
   }
 
@@ -125,4 +137,3 @@ document.addEventListener("mouseup", () => {
     holdTimer = null;
   }
 });
-
